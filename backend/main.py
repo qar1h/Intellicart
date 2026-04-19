@@ -1,10 +1,10 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 from database import engine, Base
 import models
-from routers import auth,products,orders,scheduled,recommendations
-from fastapi.middleware.cors import CORSMiddleware
-from schedular import start_scheduler,stop_scheduler
-from contextlib import asynccontextmanager
+from routers import auth, products, orders, scheduled, recommendations
+from schedular import start_scheduler, stop_scheduler
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -17,17 +17,21 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Intellicart API",
     description="Backend API for Intellicart grocery app",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://intellicart-ijt39dwey-qar1hs-projects.vercel.app,"
-    "http://localhost:5173"],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/")
+def root():
+    return {"message": "Intellicart API is running!"}
 
 app.include_router(auth.router)
 app.include_router(products.router)
@@ -35,6 +39,8 @@ app.include_router(orders.router)
 app.include_router(scheduled.router)
 app.include_router(recommendations.router)
 
-@app.get("/")
-def root():
-    return {"message": "Intellicart API is running!"}
+@app.post("/test/run-scheduler")
+def test_scheduler():
+    from schedular.jobs import process_scheduled_orders
+    process_scheduled_orders()
+    return {"message": "Scheduler ran — check terminal"}
